@@ -9,13 +9,13 @@ import { whatsappLink, DEFAULT_ORDER_MESSAGE } from "@/lib/tiers";
 
 const HERO_SLIDES = [
   {
-    src: "/images/sukkari-hero-1.png",
+    src: "/images/sukkari-bowl.png",
     alt: "সোনালি আম্বার রঙের প্রিমিয়াম সুকারি খেজুর বাটিতে সাজানো",
     caption: "১০০% খাঁটি সুকারি · সরাসরি আমদানি",
     badge: "A ও B গ্রেড",
   },
   {
-    src: "/images/sukkari-hero-2.png",
+    src: "/images/sukkari-crate.png",
     alt: "কাঠের পেটিতে তাজা চালানের সুকারি খেজুর",
     caption: "তাজা চালান · প্রতি বাক্সে সেরা দানা",
     badge: "সুকারি · সৌদি",
