@@ -70,7 +70,7 @@ export default function OrderSection() {
           <div className="px-6 py-7">
             <a
               href={`tel:${PHONE_TEL}`}
-              className="font-bengali text-3xl font-bold text-gold-light tracking-wide transition hover:text-gold"
+              className="text-3xl font-bold text-gold-light tracking-wide transition hover:text-gold"
             >
               {PHONE_DISPLAY}
             </a>

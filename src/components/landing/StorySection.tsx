@@ -51,7 +51,6 @@ export default function StorySection() {
               এই ব্যবসা একটি সদকায়ে জারিয়ার অভিপ্রায়ে — মুনাফার একটি অংশ নীরবে খাদ্য, পানি ও
               কুরআন শিক্ষায় ব্যয় হয়।
             </p>
-            <p className="mt-4 text-xs italic text-cream/50">কাওসার জান্নাত আরার স্মরণে।</p>
 
             <div className="mt-5 flex flex-wrap gap-2">
               {VALUES.map((v) => (

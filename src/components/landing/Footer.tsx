@@ -21,7 +21,7 @@ export default function Footer({ onOwner }: { onOwner: () => void }) {
         <div className="mt-5 flex flex-col items-center gap-2">
           <a
             href={`tel:${PHONE_TEL}`}
-            className="font-bengali text-lg font-bold text-gold-light tracking-wide transition hover:text-gold"
+            className="text-lg font-bold text-gold-light tracking-wide transition hover:text-gold"
           >
             {PHONE_DISPLAY}
           </a>
@@ -36,7 +36,7 @@ export default function Footer({ onOwner }: { onOwner: () => void }) {
         </div>
 
         <p className="mt-4 text-[11px] leading-relaxed text-cream/50">
-          প্রিমিয়াম সুকারি খেজুর · ডিস্ট্রিবিউটর ও রিটেইলার সরবরাহ · রমজান ২০২৭
+          প্রিমিয়াম সুকারি খেজুর · ডিস্ট্রিবিউটর ও রিটেইলার সরবরাহ
         </p>
 
         <div className="mt-6 border-t border-gold/15 pt-4 flex items-center justify-between text-[11px] text-cream/45">
@@ -44,11 +44,11 @@ export default function Footer({ onOwner }: { onOwner: () => void }) {
           <button
             type="button"
             onClick={onOwner}
-            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 transition hover:bg-white/5 hover:text-gold-light"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-gold/25 text-gold-light/80 transition hover:bg-white/5 hover:text-gold-light hover:border-gold/50"
             aria-label="মালিক প্যানেল খুলুন"
+            title="মালিক প্যানেল"
           >
-            <Lock size={12} />
-            মালিক এলাকা
+            <Lock size={15} />
           </button>
         </div>
       </div>

@@ -1,5 +1,5 @@
 // ─── AL-KAWSAR shared business definitions ───────────────────────────────────
-// Tier structure mirrors the printed Bengali price card (Ramadan 2027).
+// Tier structure mirrors the printed Bengali price card.
 
 export type TierDef = {
   id: string;
@@ -94,7 +94,7 @@ export const DEFAULT_PRICES: Record<string, Record<string, number>> = {
 export const QUICK_BOXES = [2, 5, 10, 20, 50];
 
 export const WHATSAPP_NUMBER = "8801731779724";
-export const PHONE_DISPLAY = "০১৭৩১ ৭৭৯৭২৪";
+export const PHONE_DISPLAY = "01731 779724";
 export const PHONE_TEL = "+8801731779724";
 
 export function whatsappLink(message: string): string {
