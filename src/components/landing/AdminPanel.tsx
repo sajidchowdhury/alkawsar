@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { TIERS } from "@/lib/tiers";
+import { withBasePath } from "@/lib/base-path";
 import { toBn } from "@/lib/bn";
 import { cn } from "@/lib/utils";
 import type { PublicData } from "@/lib/api-types";
@@ -74,7 +75,7 @@ export default function AdminPanel({
   useEffect(() => {
     if (!open) return;
     setChecking(true);
-    fetch("/api/admin/session", { cache: "no-store" })
+    fetch(withBasePath("/api/admin/session"), { cache: "no-store" })
       .then((r) => r.json())
       .then((j) => setAuthed(Boolean(j.authed)))
       .catch(() => setAuthed(false))
@@ -88,7 +89,7 @@ export default function AdminPanel({
     setLoggingIn(true);
     setLoginError("");
     try {
-      const res = await fetch("/api/admin/login", {
+      const res = await fetch(withBasePath("/api/admin/login"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password }),
@@ -123,7 +124,7 @@ export default function AdminPanel({
       const stock: Record<string, string> = {};
       for (const [slug, ok] of Object.entries(stocks)) stock[slug] = ok ? "available" : "coming";
 
-      const res = await fetch("/api/admin/prices", {
+      const res = await fetch(withBasePath("/api/admin/prices"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prices, stock, noteBn: note }),
@@ -144,7 +145,7 @@ export default function AdminPanel({
   }
 
   async function handleLogout() {
-    await fetch("/api/admin/logout", { method: "POST" }).catch(() => undefined);
+    await fetch(withBasePath("/api/admin/logout"), { method: "POST" }).catch(() => undefined);
     setAuthed(false);
     toast("লগআউট হয়েছে");
   }

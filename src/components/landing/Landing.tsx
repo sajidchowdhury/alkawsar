@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { withBasePath } from "@/lib/base-path";
 import type { PublicData } from "@/lib/api-types";
 import Hero from "./Hero";
 import Ticker from "./Ticker";
@@ -18,7 +19,7 @@ export default function Landing() {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch("/api/prices", { cache: "no-store" });
+      const res = await fetch(withBasePath("/api/prices"), { cache: "no-store" });
       if (!res.ok) return;
       const json = (await res.json()) as PublicData;
       setData(json);
