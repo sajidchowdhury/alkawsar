@@ -36,6 +36,9 @@ export async function GET() {
         descBn: p.descBn,
         category: p.category,
         stock: p.stock,
+        packSizeBn: p.packSizeBn,
+        hasImage: Boolean(p.imageData),
+        imageVersion: p.imageVersion,
         updatedAt: p.updatedAt.toISOString(),
         prices: Object.fromEntries(
           p.prices.map((pr) => [

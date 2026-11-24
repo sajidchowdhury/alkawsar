@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { CheckCircle2, Loader2, LogOut, Plus, Trash2, X } from "lucide-react";
+import { CheckCircle2, ImagePlus, Loader2, LogOut, Plus, Trash2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { CATEGORIES, TIERS } from "@/lib/tiers";
 import { withBasePath } from "@/lib/base-path";
+import { fileToCompressedDataUrl, handleImgError, productImageSrc } from "@/lib/images";
 import { toBn } from "@/lib/bn";
 import { cn } from "@/lib/utils";
 import type { PublicData } from "@/lib/api-types";
@@ -50,6 +51,8 @@ export default function AdminPanel({
   const [grid, setGrid] = useState<PriceGrid>(() => gridFromData(data));
   const [note, setNote] = useState("");
   const [stocks, setStocks] = useState<Record<string, boolean>>({});
+  const [packSizes, setPackSizes] = useState<Record<string, string>>({});
+  const [uploadingSlug, setUploadingSlug] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [savedCount, setSavedCount] = useState<number | null>(null);
 
@@ -62,6 +65,7 @@ export default function AdminPanel({
   const [addCategory, setAddCategory] = useState("dates");
   const [addGradeBn, setAddGradeBn] = useState("");
   const [addDescBn, setAddDescBn] = useState("");
+  const [addPackSize, setAddPackSize] = useState("");
 
   // Latest data via ref — lets us sync the form on open without clobbering edits.
   const dataRef = useRef<PublicData | null>(null);
@@ -73,8 +77,13 @@ export default function AdminPanel({
     setGrid(gridFromData(d));
     setNote(d.meta.noteBn ?? "");
     const s: Record<string, boolean> = {};
-    d.products.forEach((p) => (s[p.slug] = p.stock === "available"));
+    const pk: Record<string, string> = {};
+    d.products.forEach((p) => {
+      s[p.slug] = p.stock === "available";
+      pk[p.slug] = p.packSizeBn ?? "৩ কেজি";
+    });
     setStocks(s);
+    setPackSizes(pk);
   }
 
   // Initialize the form each time the panel opens.
@@ -134,11 +143,13 @@ export default function AdminPanel({
       }
       const stock: Record<string, string> = {};
       for (const [slug, ok] of Object.entries(stocks)) stock[slug] = ok ? "available" : "coming";
+      const packSizesOut: Record<string, string> = {};
+      for (const [slug, v] of Object.entries(packSizes)) packSizesOut[slug] = v;
 
       const res = await fetch(withBasePath("/api/admin/prices"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prices, stock, noteBn: note }),
+        body: JSON.stringify({ prices, stock, packSizes: packSizesOut, noteBn: note }),
       });
       const json = await res.json();
       if (res.ok && json.ok) {
@@ -161,12 +172,56 @@ export default function AdminPanel({
     toast("লগআউট হয়েছে");
   }
 
+  async function handleUploadImage(slug: string, file: File) {
+    setUploadingSlug(slug);
+    try {
+      const dataUrl = await fileToCompressedDataUrl(file);
+      const res = await fetch(withBasePath("/api/admin/product-image"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug, dataUrl }),
+      });
+      const json = await res.json();
+      if (res.ok && json.ok) {
+        toast.success("ছবি আপলোড হয়েছে — সাইটে দেখা যাবে");
+        onSaved();
+      } else {
+        toast.error(json.error || "আপলোড হয়নি");
+      }
+    } catch {
+      toast.error("ছবি প্রসেস করা যায়নি — আবার চেষ্টা করুন");
+    } finally {
+      setUploadingSlug(null);
+    }
+  }
+
+  async function handleRemoveImage(slug: string) {
+    setUploadingSlug(slug);
+    try {
+      const res = await fetch(withBasePath(`/api/admin/product-image?slug=${encodeURIComponent(slug)}`), {
+        method: "DELETE",
+      });
+      const json = await res.json();
+      if (res.ok && json.ok) {
+        toast.success("ছবি মুছে ফেলা হয়েছে");
+        onSaved();
+      } else {
+        toast.error(json.error || "মুছে ফেলা যায়নি");
+      }
+    } catch {
+      toast.error("সংযোগ সমস্যা — আবার চেষ্টা করুন");
+    } finally {
+      setUploadingSlug(null);
+    }
+  }
+
   function resetAddForm() {
     setAddNameBn("");
     setAddNameEn("");
     setAddCategory("dates");
     setAddGradeBn("");
     setAddDescBn("");
+    setAddPackSize("");
     setShowAdd(false);
   }
 
@@ -184,6 +239,7 @@ export default function AdminPanel({
           category: addCategory,
           gradeBn: addGradeBn,
           descBn: addDescBn,
+          packSizeBn: addPackSize,
         }),
       });
       const json = await res.json();
@@ -335,6 +391,81 @@ export default function AdminPanel({
                         </button>
                       </div>
                     </div>
+                    {/* image + packet size row */}
+                    <div className="mt-3 flex items-start gap-3 rounded-xl border border-gold/20 bg-cream/60 p-3">
+                      <label
+                        htmlFor={`img-${p.slug}`}
+                        className="relative block h-16 w-16 shrink-0 cursor-pointer overflow-hidden rounded-xl bg-white ring-1 ring-gold/40 transition hover:ring-gold"
+                        title="ছবি আপলোড করুন"
+                      >
+                        <img
+                          src={productImageSrc(p)}
+                          onError={handleImgError}
+                          alt={`${p.nameBn} ছবি`}
+                          className="h-full w-full object-cover"
+                        />
+                        {uploadingSlug === p.slug && (
+                          <span className="absolute inset-0 flex items-center justify-center bg-brand-deep/60">
+                            <Loader2 size={18} className="animate-spin text-cream" />
+                          </span>
+                        )}
+                      </label>
+                      <div className="min-w-0 flex-1 space-y-2">
+                        <input
+                          id={`img-${p.slug}`}
+                          type="file"
+                          accept="image/*"
+                          className="sr-only"
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            if (f) handleUploadImage(p.slug, f);
+                            e.target.value = "";
+                          }}
+                        />
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <label
+                            htmlFor={`img-${p.slug}`}
+                            className={cn(
+                              "inline-flex min-h-8 cursor-pointer items-center gap-1 rounded-lg border border-brand/30 px-2.5 text-[11px] font-bold text-brand transition hover:bg-brand/10 active:scale-95",
+                              uploadingSlug === p.slug && "pointer-events-none opacity-50"
+                            )}
+                          >
+                            <ImagePlus size={13} />
+                            {p.hasImage ? "ছবি বদলান" : "ছবি আপলোড"}
+                          </label>
+                          {p.hasImage && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveImage(p.slug)}
+                              disabled={uploadingSlug !== null}
+                              className="inline-flex min-h-8 items-center gap-1 rounded-lg border border-brick/30 px-2.5 text-[11px] font-bold text-brick transition hover:bg-brick/10 active:scale-95 disabled:opacity-50"
+                            >
+                              <Trash2 size={12} />
+                              মুছুন
+                            </button>
+                          )}
+                          <span className="inline-flex items-center gap-1 text-[10px] text-stone-warm">
+                            <Upload size={10} />
+                            সাইটে দেখাবে
+                          </span>
+                        </div>
+                        <div className="space-y-1">
+                          <Label htmlFor={`pack-${p.slug}`} className="text-[11px] text-stone-warm">
+                            প্যাকেট মাপ (প্রতি বাক্স)
+                          </Label>
+                          <Input
+                            id={`pack-${p.slug}`}
+                            value={packSizes[p.slug] ?? ""}
+                            onChange={(e) =>
+                              setPackSizes((s) => ({ ...s, [p.slug]: e.target.value.slice(0, 30) }))
+                            }
+                            placeholder="যেমন: ৩ কেজি"
+                            className="h-9 font-bengali text-sm"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="mt-3 grid grid-cols-2 gap-2.5">
                       {TIERS.map((t) => (
                         <div key={t.id} className="space-y-1">
@@ -447,6 +578,18 @@ export default function AdminPanel({
                           value={addDescBn}
                           onChange={(e) => setAddDescBn(e.target.value)}
                           placeholder="যেমন: গাঢ় কালো, নরম ও তিল-তেল দানা"
+                          className="h-11 font-bengali"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="add-pack" className="text-xs">
+                          প্যাকেট মাপ (ঐচ্ছিক — ডিফল্ট ৩ কেজি)
+                        </Label>
+                        <Input
+                          id="add-pack"
+                          value={addPackSize}
+                          onChange={(e) => setAddPackSize(e.target.value.slice(0, 30))}
+                          placeholder="৩ কেজি"
                           className="h-11 font-bengali"
                         />
                       </div>

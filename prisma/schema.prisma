@@ -8,18 +8,21 @@ datasource db {
 }
 
 model Product {
-  id        String         @id @default(cuid())
-  slug      String         @unique
-  nameBn    String
-  nameEn    String
-  gradeBn   String
-  descBn    String
-  category  String         @default("dates")
-  stock     String         @default("available")
-  sortOrder Int            @default(0)
-  updatedAt DateTime       @updatedAt
-  prices    ProductPrice[]
-  history   PriceHistory[]
+  id           String         @id @default(cuid())
+  slug         String         @unique
+  nameBn       String
+  nameEn       String
+  gradeBn      String
+  descBn       String
+  category     String         @default("dates")
+  stock        String         @default("available")
+  packSizeBn   String         @default("৩ কেজি")
+  imageData    String?
+  imageVersion Int            @default(0)
+  sortOrder    Int            @default(0)
+  updatedAt    DateTime       @updatedAt
+  prices       ProductPrice[]
+  history      PriceHistory[]
 }
 
 model ProductPrice {

@@ -6,6 +6,7 @@ import { TIERS } from "@/lib/tiers";
 type UpdateBody = {
   prices?: Record<string, Record<string, unknown>>;
   stock?: Record<string, unknown>;
+  packSizes?: Record<string, unknown>;
   noteBn?: unknown;
 };
 
@@ -47,6 +48,14 @@ export async function POST(req: NextRequest) {
       const stock = body.stock?.[p.slug];
       if ((stock === "available" || stock === "coming") && stock !== p.stock) {
         await db.product.update({ where: { id: p.id }, data: { stock } });
+      }
+
+      const packSize = body.packSizes?.[p.slug];
+      if (typeof packSize === "string") {
+        const cleaned = packSize.trim().slice(0, 30);
+        if (cleaned && cleaned !== p.packSizeBn) {
+          await db.product.update({ where: { id: p.id }, data: { packSizeBn: cleaned } });
+        }
       }
     }
 

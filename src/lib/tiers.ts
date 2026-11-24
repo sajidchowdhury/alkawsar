@@ -50,13 +50,14 @@ export type ProductDef = {
   gradeBn: string;
   descBn: string;
   category: string;
+  packSizeBn: string;
   sortOrder: number;
 };
 
-/** Product categories shown on the site. */
-export const CATEGORIES: { id: string; labelBn: string }[] = [
-  { id: "dates", labelBn: "খেজুর" },
-  { id: "other", labelBn: "অন্যান্য পণ্য" },
+/** Product categories shown on the site (menu picker circles). */
+export const CATEGORIES: { id: string; labelBn: string; image: string }[] = [
+  { id: "dates", labelBn: "খেজুর", image: "/images/categories/dates.png" },
+  { id: "other", labelBn: "অন্যান্য পণ্য", image: "/images/categories/other.png" },
 ];
 
 export const CATEGORY_IDS = CATEGORIES.map((c) => c.id);
@@ -66,7 +67,7 @@ export function categoryLabelBn(id: string): string {
 }
 
 /** Seed catalog — bump SEED_VERSION to push new/renamed items to existing databases. */
-export const SEED_VERSION = 2;
+export const SEED_VERSION = 3;
 
 export const PRODUCTS_DEF: ProductDef[] = [
   {
@@ -76,6 +77,7 @@ export const PRODUCTS_DEF: ProductDef[] = [
     gradeBn: "A গ্রেড",
     descBn: "নরম, রসালো ও মিষ্টি — তাজা ফসলের সেরা দানা।",
     category: "dates",
+    packSizeBn: "৩ কেজি",
     sortOrder: 1,
   },
   {
@@ -85,6 +87,7 @@ export const PRODUCTS_DEF: ProductDef[] = [
     gradeBn: "B গ্রেড",
     descBn: "শক্ত ও মসৃণ দানা — দীর্ঘ সংরক্ষণেও দাম ধরে রাখে।",
     category: "dates",
+    packSizeBn: "৩ কেজি",
     sortOrder: 2,
   },
   {
@@ -94,6 +97,7 @@ export const PRODUCTS_DEF: ProductDef[] = [
     gradeBn: "প্রিমিয়াম",
     descBn: "মাঝারি নরম ও সুন্দর মিষ্টি — সুক্কারির পরই ক্রেতাদের পছন্দ।",
     category: "dates",
+    packSizeBn: "৩ কেজি",
     sortOrder: 3,
   },
 ];

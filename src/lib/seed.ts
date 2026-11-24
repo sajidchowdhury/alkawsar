@@ -25,6 +25,7 @@ export async function ensureSeed(): Promise<void> {
             gradeBn: p.gradeBn,
             descBn: p.descBn,
             category: p.category,
+            packSizeBn: p.packSizeBn,
             sortOrder: p.sortOrder,
           },
           create: {
@@ -34,6 +35,7 @@ export async function ensureSeed(): Promise<void> {
             gradeBn: p.gradeBn,
             descBn: p.descBn,
             category: p.category,
+            packSizeBn: p.packSizeBn,
             sortOrder: p.sortOrder,
             prices: {
               create: TIERS.map((t) => ({

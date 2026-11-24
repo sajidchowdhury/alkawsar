@@ -9,6 +9,7 @@ type CreateBody = {
   category?: unknown;
   gradeBn?: unknown;
   descBn?: unknown;
+  packSizeBn?: unknown;
 };
 
 function cleanStr(v: unknown, max: number): string {
@@ -49,6 +50,7 @@ export async function POST(req: NextRequest) {
     const nameEn = cleanStr(body.nameEn, 60) || nameBn;
     const gradeBn = cleanStr(body.gradeBn, 40) || "প্রিমিয়াম";
     const descBn = cleanStr(body.descBn, 160);
+    const packSizeBn = cleanStr(body.packSizeBn, 30) || "৩ কেজি";
 
     // Build a unique slug from the English name.
     let slug = slugify(nameEn);
@@ -67,6 +69,7 @@ export async function POST(req: NextRequest) {
         gradeBn,
         descBn,
         category,
+        packSizeBn,
         sortOrder: (maxOrder._max.sortOrder ?? 0) + 1,
       },
     });

@@ -10,6 +10,9 @@ export type PublicProduct = {
   descBn: string;
   category: string;
   stock: string;
+  packSizeBn: string;
+  hasImage: boolean;
+  imageVersion: number;
   updatedAt: string;
   prices: Record<string, { price: number; change: PriceChange }>;
 };
