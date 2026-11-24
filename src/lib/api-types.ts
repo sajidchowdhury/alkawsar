@@ -8,6 +8,7 @@ export type PublicProduct = {
   nameEn: string;
   gradeBn: string;
   descBn: string;
+  category: string;
   stock: string;
   updatedAt: string;
   prices: Record<string, { price: number; change: PriceChange }>;

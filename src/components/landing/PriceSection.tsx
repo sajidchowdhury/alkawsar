@@ -70,6 +70,7 @@ function CalcProductCard({
   if (!product) {
     return <div className="rounded-2xl bg-white/5 border border-gold/20 p-4 h-36 animate-pulse" />;
   }
+  const hasPrice = price > 0;
   const total = price * boxes;
   const available = product.stock === "available";
 
@@ -97,10 +98,14 @@ function CalcProductCard({
       </div>
 
       <div className="flex items-end gap-1.5">
-        <span className="font-bengali text-2xl sm:text-3xl font-bold text-gold-light leading-none">
-          {formatTaka(shown)}
-        </span>
-        <span className="text-[11px] text-cream/60 pb-0.5">/বাক্স</span>
+        {hasPrice ? (
+          <span className="font-bengali text-2xl sm:text-3xl font-bold text-gold-light leading-none">
+            {formatTaka(shown)}
+          </span>
+        ) : (
+          <span className="font-bengali text-2xl sm:text-3xl font-bold text-gold-light/50 leading-none">—</span>
+        )}
+        {hasPrice && <span className="text-[11px] text-cream/60 pb-0.5">/বাক্স</span>}
         <span className="ml-auto pb-0.5">
           <ChangeBadge change={product.prices[tier.id]?.change ?? null} dark />
         </span>
@@ -108,7 +113,8 @@ function CalcProductCard({
 
       <div className="flex items-center justify-between text-[11px] text-cream/70">
         <span>
-          {toBn(boxes)} বাক্স ≈ <span className="font-bold text-cream">{formatTaka(total)}</span>
+          {toBn(boxes)} বাক্স ≈{" "}
+          <span className="font-bold text-cream">{hasPrice ? formatTaka(total) : "—"}</span>
         </span>
         {sampleActive && (
           <span className="rounded-full bg-gold px-2 py-0.5 text-[10px] font-bold text-brand-deep">
@@ -143,20 +149,23 @@ function PriceSkeleton() {
 export default function PriceSection({ data }: { data: PublicData | null }) {
   const [boxes, setBoxes] = useState(2);
 
-  const products = useMemo(() => {
-    const map = new Map<string, PublicProduct>();
-    data?.products.forEach((p) => map.set(p.slug, p));
-    return map;
-  }, [data]);
+  const products = useMemo(() => data?.products ?? [], [data]);
 
   const tier: TierDef = ladderTierForBoxes(boxes);
-  const juicy = products.get("juicy");
-  const hard = products.get("hard");
 
-  // The calculator shows the tier price for the active tier directly.
-  const priceFor = (p: PublicProduct | undefined) => p?.prices[tier.id]?.price ?? 0;
+  // Group products by category — খেজুর first, then other items (if any).
+  const { groups, showGroupLabels } = useMemo(() => {
+    const all = data?.products ?? [];
+    const dates = all.filter((p) => p.category === "dates");
+    const other = all.filter((p) => p.category !== "dates");
+    const g: { label: string; items: PublicProduct[] }[] = [
+      { label: "খেজুর", items: dates },
+      { label: "অন্যান্য পণ্য", items: other },
+    ];
+    return { groups: g, showGroupLabels: dates.length > 0 && other.length > 0 };
+  }, [data]);
 
-  const waMessage = `আসসালামু আলাইকুম। আমি AL-KAWSAR ওয়েবসাইট থেকে দাম দেখে ${toBn(boxes)} বাক্স সুকারি খেজুর অর্ডার করতে চাই (টিয়ার: ${tier.labelBn})।`;
+  const waMessage = `আসসালামু আলাইকুম। আমি AL-KAWSAR ওয়েবসাইট থেকে দাম দেখে ${toBn(boxes)} বাক্স খেজুর অর্ডার করতে চাই (টিয়ার: ${tier.labelBn})।`;
 
   return (
     <section id="prices" className="relative bg-cream py-14 md:py-20 scroll-mt-4">
@@ -261,11 +270,29 @@ export default function PriceSection({ data }: { data: PublicData | null }) {
                 </span>
               </div>
 
-              {/* two product prices */}
-              <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <CalcProductCard product={juicy} tier={tier} boxes={boxes} sampleActive={tier.id === "sample"} />
-                <CalcProductCard product={hard} tier={tier} boxes={boxes} sampleActive={tier.id === "sample"} />
-              </div>
+              {/* product prices — grouped by category when both exist */}
+              {groups
+                .filter((g) => g.items.length > 0)
+                .map((g) => (
+                  <div key={g.label} className="mt-4">
+                    {showGroupLabels && (
+                      <p className="mb-2 font-bengali text-[11px] font-bold tracking-wide text-gold-light/80">
+                        — {g.label} —
+                      </p>
+                    )}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {g.items.map((p) => (
+                        <CalcProductCard
+                          key={p.slug}
+                          product={p}
+                          tier={tier}
+                          boxes={boxes}
+                          sampleActive={tier.id === "sample"}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))}
 
               {/* CTA */}
               <a
@@ -289,25 +316,30 @@ export default function PriceSection({ data }: { data: PublicData | null }) {
                 <p className="text-[10px] font-semibold text-stone-warm">প্রতি বাক্সের দাম · টাকায়</p>
               </div>
 
-              {/* desktop table */}
-              <div className="hidden sm:block">
-                <div className="grid grid-cols-[1.5fr_0.7fr_1fr_1fr_1.1fr] gap-2 bg-brand px-5 py-2.5 text-[11px] font-bold text-cream">
-                  <span>স্তর</span>
-                  <span className="text-center">বাক্স</span>
-                  <span className="text-center">সুকারি জুসি (A)</span>
-                  <span className="text-center">সুকারি হার্ড (B)</span>
-                  <span className="text-right">ক্রেতার ধরন</span>
-                </div>
-                {TIERS.map((t) => {
-                  const jp = juicy?.prices[t.id];
-                  const hp = hard?.prices[t.id];
-                  return (
+              {/* desktop table — columns follow the live product list, scrolls when wide */}
+              <div className="hidden sm:block overflow-x-auto">
+                <div style={{ minWidth: Math.max(560, 240 + products.length * 95) }}>
+                  <div
+                    className="grid items-center gap-2 bg-brand px-5 py-2.5 text-[11px] font-bold text-cream"
+                    style={{ gridTemplateColumns: `1.4fr 0.6fr repeat(${products.length}, 1.05fr) 1fr` }}
+                  >
+                    <span>স্তর</span>
+                    <span className="text-center">বাক্স</span>
+                    {products.map((p) => (
+                      <span key={p.slug} className="text-center font-bengali" title={`${p.nameEn} · ${p.gradeBn}`}>
+                        {p.nameBn}
+                      </span>
+                    ))}
+                    <span className="text-right">ক্রেতার ধরন</span>
+                  </div>
+                  {TIERS.map((t) => (
                     <div
                       key={t.id}
                       className={cn(
-                        "grid grid-cols-[1.5fr_0.7fr_1fr_1fr_1.1fr] items-center gap-2 px-5 py-3 text-sm border-b border-gold/15 last:border-0",
+                        "grid items-center gap-2 px-5 py-3 text-sm border-b border-gold/15 last:border-0",
                         t.featured ? "bg-gold/15" : "hover:bg-cream/70"
                       )}
+                      style={{ gridTemplateColumns: `1.4fr 0.6fr repeat(${products.length}, 1.05fr) 1fr` }}
                     >
                       <span className="font-bengali font-semibold text-ink flex items-center gap-1.5">
                         {t.featured && <Star size={13} className="fill-gold text-gold-deep shrink-0" />}
@@ -316,56 +348,65 @@ export default function PriceSection({ data }: { data: PublicData | null }) {
                       <span className="text-center text-xs text-stone-warm font-semibold">
                         {t.max ? `${toBn(t.min)}–${toBn(t.max)}` : `${toBn(t.min)}+`}
                       </span>
-                      <span className="text-center">
-                        <span className="font-bengali font-bold text-brand">{formatTaka(jp?.price ?? 0)}</span>
-                        <span className="ml-1 align-middle">
-                          <ChangeBadge change={jp?.change ?? null} />
-                        </span>
-                      </span>
-                      <span className="text-center">
-                        <span className="font-bengali font-bold text-brand">{formatTaka(hp?.price ?? 0)}</span>
-                        <span className="ml-1 align-middle">
-                          <ChangeBadge change={hp?.change ?? null} />
-                        </span>
-                      </span>
+                      {products.map((p) => {
+                        const pr = p.prices[t.id];
+                        return (
+                          <span key={p.slug} className="text-center">
+                            {pr && pr.price > 0 ? (
+                              <>
+                                <span className="font-bengali font-bold text-brand">{formatTaka(pr.price)}</span>
+                                <span className="ml-1 align-middle">
+                                  <ChangeBadge change={pr.change ?? null} />
+                                </span>
+                              </>
+                            ) : (
+                              <span className="text-stone-warm">—</span>
+                            )}
+                          </span>
+                        );
+                      })}
                       <span className="text-right text-xs text-stone-warm">{t.buyerBn}</span>
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
 
               {/* mobile stacked cards */}
               <div className="sm:hidden divide-y divide-gold/15">
-                {TIERS.map((t) => {
-                  const jp = juicy?.prices[t.id];
-                  const hp = hard?.prices[t.id];
-                  return (
-                    <div key={t.id} className={cn("px-4 py-3.5", t.featured && "bg-gold/15")}>
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-bengali font-semibold text-sm text-ink flex items-center gap-1.5">
-                          {t.featured && <Star size={13} className="fill-gold text-gold-deep shrink-0" />}
-                          {t.labelBn}
-                        </span>
-                        <span className="rounded-full bg-brand/8 border border-brand/15 px-2 py-0.5 text-[10px] font-bold text-brand">
-                          {t.max ? `${toBn(t.min)}–${toBn(t.max)} বাক্স` : `${toBn(t.min)}+ বাক্স`}
-                        </span>
-                      </div>
-                      <div className="mt-2.5 grid grid-cols-2 gap-2">
-                        <div className="rounded-xl bg-cream border border-gold/20 px-3 py-2">
-                          <p className="text-[10px] font-semibold text-stone-warm">জুসি · A</p>
-                          <p className="font-bengali text-base font-bold text-brand">{formatTaka(jp?.price ?? 0)}</p>
-                          <ChangeBadge change={jp?.change ?? null} />
-                        </div>
-                        <div className="rounded-xl bg-cream border border-gold/20 px-3 py-2">
-                          <p className="text-[10px] font-semibold text-stone-warm">হার্ড · B</p>
-                          <p className="font-bengali text-base font-bold text-brand">{formatTaka(hp?.price ?? 0)}</p>
-                          <ChangeBadge change={hp?.change ?? null} />
-                        </div>
-                      </div>
-                      <p className="mt-1.5 text-[11px] text-stone-warm">ক্রেতা: {t.buyerBn}</p>
+                {TIERS.map((t) => (
+                  <div key={t.id} className={cn("px-4 py-3.5", t.featured && "bg-gold/15")}>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-bengali font-semibold text-sm text-ink flex items-center gap-1.5">
+                        {t.featured && <Star size={13} className="fill-gold text-gold-deep shrink-0" />}
+                        {t.labelBn}
+                      </span>
+                      <span className="rounded-full bg-brand/8 border border-brand/15 px-2 py-0.5 text-[10px] font-bold text-brand">
+                        {t.max ? `${toBn(t.min)}–${toBn(t.max)} বাক্স` : `${toBn(t.min)}+ বাক্স`}
+                      </span>
                     </div>
-                  );
-                })}
+                    <div className="mt-2.5 grid grid-cols-2 gap-2">
+                      {products.map((p) => {
+                        const pr = p.prices[t.id];
+                        return (
+                          <div key={p.slug} className="rounded-xl bg-cream border border-gold/20 px-3 py-2">
+                            <p className="font-bengali text-[10px] font-semibold text-stone-warm truncate">
+                              {p.nameBn}
+                            </p>
+                            {pr && pr.price > 0 ? (
+                              <>
+                                <p className="font-bengali text-base font-bold text-brand">{formatTaka(pr.price)}</p>
+                                <ChangeBadge change={pr.change ?? null} />
+                              </>
+                            ) : (
+                              <p className="font-bengali text-base font-bold text-stone-warm/60">—</p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <p className="mt-1.5 text-[11px] text-stone-warm">ক্রেতা: {t.buyerBn}</p>
+                  </div>
+                ))}
               </div>
 
               <p className="border-t border-gold/25 bg-cream/60 px-4 sm:px-5 py-2.5 text-center text-[11px] text-stone-warm">

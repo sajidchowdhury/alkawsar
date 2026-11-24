@@ -37,7 +37,7 @@ export default function StickyBar() {
                 <p className="font-bengali text-[13px] font-bold text-cream leading-tight">
                   আজকের দাম দেখুন
                 </p>
-                <p className="text-[11px] text-gold-light/90">সুকারি জুসি · সুকারি হার্ড — লাইভ রেট</p>
+                <p className="text-[11px] text-gold-light/90">সুক্কারি · শামিয়া — লাইভ রেট</p>
               </button>
               <a
                 href={whatsappLink(DEFAULT_ORDER_MESSAGE)}

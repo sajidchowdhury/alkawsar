@@ -10,15 +10,15 @@ import { whatsappLink, DEFAULT_ORDER_MESSAGE } from "@/lib/tiers";
 const HERO_SLIDES = [
   {
     src: "/images/sukkari-bowl.png",
-    alt: "সোনালি আম্বার রঙের প্রিমিয়াম সুকারি খেজুর বাটিতে সাজানো",
-    caption: "১০০% খাঁটি সুকারি · সরাসরি আমদানি",
+    alt: "সোনালি আম্বার রঙের প্রিমিয়াম সুক্কারি খেজুর বাটিতে সাজানো",
+    caption: "১০০% খাঁটি সুক্কারি · সরাসরি আমদানি",
     badge: "A ও B গ্রেড",
   },
   {
     src: "/images/sukkari-crate.png",
-    alt: "কাঠের পেটিতে তাজা চালানের সুকারি খেজুর",
+    alt: "কাঠের পেটিতে তাজা চালানের সুক্কারি খেজুর",
     caption: "তাজা চালান · প্রতি বাক্সে সেরা দানা",
-    badge: "সুকারি · সৌদি",
+    badge: "সুক্কারি · সৌদি",
   },
 ];
 
@@ -197,7 +197,7 @@ export default function Hero() {
           className="inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-4 py-1.5 text-[11px] sm:text-xs font-semibold tracking-wider text-gold-light"
         >
           <span className="h-1.5 w-1.5 rounded-full bg-gold animate-ak-pulse-dot" aria-hidden />
-          প্রিমিয়াম সুকারি খেজুর · পাইকারি সরবরাহ
+          প্রিমিয়াম খেজুর · সুক্কারি · শামিয়া · পাইকারি সরবরাহ
         </motion.div>
 
         {/* animated logo */}
@@ -240,7 +240,7 @@ export default function Hero() {
           transition={{ delay: 1.05, duration: 0.6 }}
           className="mt-2 text-sm text-cream/75 max-w-md mx-auto leading-relaxed"
         >
-          সরাসরি ইমপোর্টার সূত্র থেকে সুকারি খেজুর — গ্রেড যা বলি, ঠিক তা-ই পাবেন; দাম যা দেখছেন,
+          সরাসরি ইমপোর্টার সূত্র থেকে সুক্কারি, শামিয়াসহ প্রিমিয়াম খেজুর — গ্রেড যা বলি, ঠিক তা-ই পাবেন; দাম যা দেখছেন,
           সেটাই চূড়ান্ত।
         </motion.p>
 

@@ -7,11 +7,11 @@ export const ADMIN_COOKIE_NAME = "ak_admin";
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
 
 function adminSecret(): string {
-  return process.env.ADMIN_SECRET || "al-kawsar-honest-secret-ramadan-2027";
+  return process.env.ADMIN_SECRET || "al-kawsar-owner-secret";
 }
 
 function adminPassword(): string {
-  return process.env.ADMIN_PASSWORD || "alkawsar2027";
+  return process.env.ADMIN_PASSWORD || "alkawsar-admin";
 }
 
 export function adminToken(): string {

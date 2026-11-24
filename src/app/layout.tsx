@@ -26,13 +26,13 @@ const hindSiliguri = Hind_Siliguri({
 });
 
 export const metadata: Metadata = {
-  title: "AL-KAWSAR · প্রিমিয়াম সুকারি খেজুর",
+  title: "AL-KAWSAR · প্রিমিয়াম সুক্কারি ও শামিয়া খেজুর",
   description:
-    "সততার সাথে সংগৃহীত। বিশ্বাসের সাথে বিক্রি। প্রিমিয়াম সুকারি খেজুর — ডিস্ট্রিবিউটর ও রিটেইলার সরবরাহ। আজকের লাইভ দাম দেখুন।",
-  keywords: ["AL-KAWSAR", "সুকারি খেজুর", "Sukkari dates", "Ramadan 2027", "wholesale dates"],
+    "সততার সাথে সংগৃহীত। বিশ্বাসের সাথে বিক্রি। সুক্কারি, শামিয়াসহ প্রিমিয়াম খেজুর — ডিস্ট্রিবিউটর ও রিটেইলার সরবরাহ। আজকের লাইভ দাম দেখুন।",
+  keywords: ["AL-KAWSAR", "সুক্কারি খেজুর", "Sukkari dates", "শামিয়া খেজুর", "Shamia dates", "খেজুর পাইকারি", "wholesale dates"],
   applicationName: "AL-KAWSAR",
   openGraph: {
-    title: "AL-KAWSAR · প্রিমিয়াম সুকারি খেজুর",
+    title: "AL-KAWSAR · প্রিমিয়াম সুক্কারি ও শামিয়া খেজুর",
     description: "সততার সাথে সংগৃহীত। বিশ্বাসের সাথে বিক্রি। আজকের দাম দেখুন।",
     type: "website",
   },

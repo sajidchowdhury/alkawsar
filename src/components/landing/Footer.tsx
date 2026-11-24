@@ -36,7 +36,7 @@ export default function Footer({ onOwner }: { onOwner: () => void }) {
         </div>
 
         <p className="mt-4 text-[11px] leading-relaxed text-cream/50">
-          প্রিমিয়াম সুকারি খেজুর · ডিস্ট্রিবিউটর ও রিটেইলার সরবরাহ
+          প্রিমিয়াম খেজুর ও আমদানি পণ্য · ডিস্ট্রিবিউটর ও রিটেইলার সরবরাহ
         </p>
 
         <div className="mt-6 border-t border-gold/15 pt-4 flex items-center justify-between text-[11px] text-cream/45">

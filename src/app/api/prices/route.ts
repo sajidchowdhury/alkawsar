@@ -34,6 +34,7 @@ export async function GET() {
         nameEn: p.nameEn,
         gradeBn: p.gradeBn,
         descBn: p.descBn,
+        category: p.category,
         stock: p.stock,
         updatedAt: p.updatedAt.toISOString(),
         prices: Object.fromEntries(

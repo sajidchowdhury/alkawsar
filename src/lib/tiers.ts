@@ -49,25 +49,52 @@ export type ProductDef = {
   nameEn: string;
   gradeBn: string;
   descBn: string;
+  category: string;
   sortOrder: number;
 };
+
+/** Product categories shown on the site. */
+export const CATEGORIES: { id: string; labelBn: string }[] = [
+  { id: "dates", labelBn: "খেজুর" },
+  { id: "other", labelBn: "অন্যান্য পণ্য" },
+];
+
+export const CATEGORY_IDS = CATEGORIES.map((c) => c.id);
+
+export function categoryLabelBn(id: string): string {
+  return CATEGORIES.find((c) => c.id === id)?.labelBn ?? "অন্যান্য পণ্য";
+}
+
+/** Seed catalog — bump SEED_VERSION to push new/renamed items to existing databases. */
+export const SEED_VERSION = 2;
 
 export const PRODUCTS_DEF: ProductDef[] = [
   {
     slug: "juicy",
-    nameBn: "সুকারি জুসি",
+    nameBn: "সুক্কারি জুসি",
     nameEn: "Sukkari Juicy",
     gradeBn: "A গ্রেড",
     descBn: "নরম, রসালো ও মিষ্টি — তাজা ফসলের সেরা দানা।",
+    category: "dates",
     sortOrder: 1,
   },
   {
     slug: "hard",
-    nameBn: "সুকারি হার্ড",
+    nameBn: "সুক্কারি হার্ড",
     nameEn: "Sukkari Hard",
     gradeBn: "B গ্রেড",
     descBn: "শক্ত ও মসৃণ দানা — দীর্ঘ সংরক্ষণেও দাম ধরে রাখে।",
+    category: "dates",
     sortOrder: 2,
+  },
+  {
+    slug: "shamia",
+    nameBn: "শামিয়া",
+    nameEn: "Shamia",
+    gradeBn: "প্রিমিয়াম",
+    descBn: "মাঝারি নরম ও সুন্দর মিষ্টি — সুক্কারির পরই ক্রেতাদের পছন্দ।",
+    category: "dates",
+    sortOrder: 3,
   },
 ];
 
@@ -89,6 +116,14 @@ export const DEFAULT_PRICES: Record<string, Record<string, number>> = {
     dist_std: 1980,
     dist_bulk: 1950,
   },
+  shamia: {
+    sample: 1690,
+    retail_direct: 1850,
+    retail_bulk: 1800,
+    retail_volume: 1780,
+    dist_std: 1780,
+    dist_bulk: 1750,
+  },
 };
 
 export const QUICK_BOXES = [2, 5, 10, 20, 50];
@@ -102,4 +137,4 @@ export function whatsappLink(message: string): string {
 }
 
 export const DEFAULT_ORDER_MESSAGE =
-  "আসসালামু আলাইকুম। আমি AL-KAWSAR ওয়েবসাইট থেকে সুকারি খেজুরের দাম দেখে অর্ডার করতে চাই। বিস্তারিত জানাবেন প্লিজ।";
+  "আসসালামু আলাইকুম। আমি AL-KAWSAR ওয়েবসাইট থেকে খেজুরের দাম দেখে অর্ডার করতে চাই। বিস্তারিত জানাবেন প্লিজ।";

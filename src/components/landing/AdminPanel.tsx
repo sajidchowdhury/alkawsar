@@ -2,14 +2,14 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { CheckCircle2, Loader2, LogOut, X } from "lucide-react";
+import { CheckCircle2, Loader2, LogOut, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { TIERS } from "@/lib/tiers";
+import { CATEGORIES, TIERS } from "@/lib/tiers";
 import { withBasePath } from "@/lib/base-path";
 import { toBn } from "@/lib/bn";
 import { cn } from "@/lib/utils";
@@ -22,7 +22,8 @@ function gridFromData(data: PublicData | null): PriceGrid {
   for (const p of data?.products ?? []) {
     const row: Record<string, string> = {};
     for (const t of TIERS) {
-      row[t.id] = String(p.prices[t.id]?.price ?? "");
+      // Unset prices (0) show as empty inputs — cleaner for brand-new products.
+      row[t.id] = p.prices[t.id]?.price ? String(p.prices[t.id].price) : "";
     }
     grid[p.slug] = row;
   }
@@ -48,9 +49,19 @@ export default function AdminPanel({
 
   const [grid, setGrid] = useState<PriceGrid>(() => gridFromData(data));
   const [note, setNote] = useState("");
-  const [stocks, setStocks] = useState<Record<string, boolean>>({ juicy: true, hard: true });
+  const [stocks, setStocks] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
   const [savedCount, setSavedCount] = useState<number | null>(null);
+
+  // Product management
+  const [showAdd, setShowAdd] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [deletingSlug, setDeletingSlug] = useState<string | null>(null);
+  const [addNameBn, setAddNameBn] = useState("");
+  const [addNameEn, setAddNameEn] = useState("");
+  const [addCategory, setAddCategory] = useState("dates");
+  const [addGradeBn, setAddGradeBn] = useState("");
+  const [addDescBn, setAddDescBn] = useState("");
 
   // Latest data via ref — lets us sync the form on open without clobbering edits.
   const dataRef = useRef<PublicData | null>(null);
@@ -150,6 +161,67 @@ export default function AdminPanel({
     toast("লগআউট হয়েছে");
   }
 
+  function resetAddForm() {
+    setAddNameBn("");
+    setAddNameEn("");
+    setAddCategory("dates");
+    setAddGradeBn("");
+    setAddDescBn("");
+    setShowAdd(false);
+  }
+
+  async function handleAddProduct(e?: React.FormEvent) {
+    e?.preventDefault();
+    if (!addNameBn.trim()) return;
+    setAdding(true);
+    try {
+      const res = await fetch(withBasePath("/api/admin/products"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nameBn: addNameBn,
+          nameEn: addNameEn,
+          category: addCategory,
+          gradeBn: addGradeBn,
+          descBn: addDescBn,
+        }),
+      });
+      const json = await res.json();
+      if (res.ok && json.ok) {
+        toast.success(`"${addNameBn}" যোগ হয়েছে — এখন দাম বসিয়ে সেভ করুন`);
+        resetAddForm();
+        onSaved();
+      } else {
+        toast.error(json.error || "যোগ করা যায়নি");
+      }
+    } catch {
+      toast.error("সংযোগ সমস্যা — আবার চেষ্টা করুন");
+    } finally {
+      setAdding(false);
+    }
+  }
+
+  async function handleDeleteProduct(slug: string, nameBn: string) {
+    if (!window.confirm(`"${nameBn}" পণ্যটি মুছে ফেলবেন? এর দাম-ইতিহাসও মুছে যাবে।`)) return;
+    setDeletingSlug(slug);
+    try {
+      const res = await fetch(withBasePath(`/api/admin/products?slug=${encodeURIComponent(slug)}`), {
+        method: "DELETE",
+      });
+      const json = await res.json();
+      if (res.ok && json.ok) {
+        toast.success(`"${nameBn}" মুছে ফেলা হয়েছে`);
+        onSaved();
+      } else {
+        toast.error(json.error || "মুছে ফেলা যায়নি");
+      }
+    } catch {
+      toast.error("সংযোগ সমস্যা — আবার চেষ্টা করুন");
+    } finally {
+      setDeletingSlug(null);
+    }
+  }
+
   return (
     <AnimatePresence>
       {open && (
@@ -225,7 +297,12 @@ export default function AdminPanel({
                   <div key={p.slug} className="rounded-2xl border border-gold/30 bg-linen p-4">
                     <div className="flex items-center justify-between gap-2">
                       <div>
-                        <h3 className="font-bengali text-sm font-bold text-brand">{p.nameBn}</h3>
+                        <h3 className="font-bengali text-sm font-bold text-brand">
+                          {p.nameBn}
+                          <span className="ml-2 rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-bold text-brand/80">
+                            {p.category === "dates" ? "খেজুর" : "অন্যান্য"}
+                          </span>
+                        </h3>
                         <p className="text-[10px] text-stone-warm">{p.nameEn}</p>
                       </div>
                       <div className="flex items-center gap-2">
@@ -242,6 +319,20 @@ export default function AdminPanel({
                           onCheckedChange={(v) => setStocks((s) => ({ ...s, [p.slug]: v }))}
                           aria-label={`${p.nameBn} স্টক স্ট্যাটাস`}
                         />
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteProduct(p.slug, p.nameBn)}
+                          disabled={deletingSlug !== null}
+                          className="flex h-8 w-8 items-center justify-center rounded-full text-brick/70 transition hover:bg-brick/10 hover:text-brick disabled:opacity-40"
+                          aria-label={`${p.nameBn} মুছে ফেলুন`}
+                          title="পণ্য মুছে ফেলুন"
+                        >
+                          {deletingSlug === p.slug ? (
+                            <Loader2 size={15} className="animate-spin" />
+                          ) : (
+                            <Trash2 size={15} />
+                          )}
+                        </button>
                       </div>
                     </div>
                     <div className="mt-3 grid grid-cols-2 gap-2.5">
@@ -273,6 +364,113 @@ export default function AdminPanel({
                     </div>
                   </div>
                 ))}
+
+                {/* ── product management ─────────────────────────────────── */}
+                <div className="rounded-2xl border border-brand/25 bg-white/60 p-4">
+                  {!showAdd ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowAdd(true)}
+                      className="flex min-h-11 w-full items-center justify-center gap-1.5 rounded-xl border border-brand/30 font-bengali text-sm font-bold text-brand transition hover:bg-brand/10 active:scale-[0.99]"
+                    >
+                      <Plus size={16} />
+                      নতুন পণ্য যোগ করুন
+                    </button>
+                  ) : (
+                    <form onSubmit={handleAddProduct} className="space-y-3">
+                      <p className="font-bengali text-sm font-bold text-brand">নতুন পণ্য</p>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="add-name-bn" className="text-xs">
+                          বাংলা নাম <span className="text-brick">*</span>
+                        </Label>
+                        <Input
+                          id="add-name-bn"
+                          value={addNameBn}
+                          onChange={(e) => setAddNameBn(e.target.value)}
+                          placeholder="যেমন: আজওয়া"
+                          className="h-11 font-bengali"
+                          autoFocus
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <div className="space-y-1.5">
+                          <Label htmlFor="add-name-en" className="text-xs">
+                            English নাম
+                          </Label>
+                          <Input
+                            id="add-name-en"
+                            value={addNameEn}
+                            onChange={(e) => setAddNameEn(e.target.value)}
+                            placeholder="Ajwa"
+                            className="h-11"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="add-grade" className="text-xs">
+                            গ্রেড / ধরন
+                          </Label>
+                          <Input
+                            id="add-grade"
+                            value={addGradeBn}
+                            onChange={(e) => setAddGradeBn(e.target.value)}
+                            placeholder="প্রিমিয়াম"
+                            className="h-11 font-bengali"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">ক্যাটাগরি</Label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {CATEGORIES.map((c) => (
+                            <button
+                              key={c.id}
+                              type="button"
+                              onClick={() => setAddCategory(c.id)}
+                              className={cn(
+                                "min-h-10 rounded-xl border font-bengali text-xs font-bold transition active:scale-[0.98]",
+                                addCategory === c.id
+                                  ? "border-brand bg-brand text-cream"
+                                  : "border-brand/30 text-brand hover:bg-brand/10"
+                              )}
+                            >
+                              {c.labelBn}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="add-desc" className="text-xs">
+                          ছোট বর্ণনা (ঐচ্ছিক)
+                        </Label>
+                        <Input
+                          id="add-desc"
+                          value={addDescBn}
+                          onChange={(e) => setAddDescBn(e.target.value)}
+                          placeholder="যেমন: গাঢ় কালো, নরম ও তিল-তেল দানা"
+                          className="h-11 font-bengali"
+                        />
+                      </div>
+                      <div className="flex gap-2 pt-0.5">
+                        <Button
+                          type="submit"
+                          disabled={adding || !addNameBn.trim()}
+                          className="h-11 flex-1 bg-brand text-cream hover:bg-brand-soft font-bold"
+                        >
+                          {adding ? <Loader2 className="animate-spin" size={17} /> : "যোগ করুন"}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={resetAddForm}
+                          disabled={adding}
+                          className="h-11 font-bengali"
+                        >
+                          বাতিল
+                        </Button>
+                      </div>
+                    </form>
+                  )}
+                </div>
 
                 <div className="space-y-1.5">
                   <Label htmlFor="admin-note" className="text-xs">
