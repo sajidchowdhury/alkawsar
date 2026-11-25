@@ -2,7 +2,7 @@
 
 import type { SyntheticEvent } from "react";
 import { withBasePath } from "@/lib/base-path";
-import type { PublicProduct } from "@/lib/api-types";
+import type { PublicCategory, PublicProduct } from "@/lib/api-types";
 
 export const DEFAULT_PRODUCT_IMAGE = withBasePath("/images/products/default.png");
 
@@ -14,6 +14,20 @@ export function productImageSrc(
     return withBasePath(`/api/product-image/${encodeURIComponent(p.slug)}?v=${p.imageVersion}`);
   }
   return withBasePath(`/images/products/${p.slug}.png`);
+}
+
+/**
+ * Best available image for a category circle: owner upload → seeded artwork.
+ * Returns null when the category has no image — UI shows the label text instead.
+ */
+export function categoryImageSrc(
+  c: Pick<PublicCategory, "id" | "hasImage" | "imageVersion" | "imagePath">
+): string | null {
+  if (c.hasImage) {
+    return withBasePath(`/api/category-image/${encodeURIComponent(c.id)}?v=${c.imageVersion}`);
+  }
+  if (c.imagePath) return withBasePath(c.imagePath);
+  return null;
 }
 
 /** Swap to the brand default artwork once, then stop (prevents loops). */

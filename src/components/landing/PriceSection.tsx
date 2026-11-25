@@ -14,18 +14,17 @@ import {
   X,
 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
-import type { PriceChange, PublicData, PublicProduct } from "@/lib/api-types";
+import type { PriceChange, PublicCategory, PublicData, PublicProduct } from "@/lib/api-types";
 import {
-  CATEGORIES,
   QUICK_BOXES,
   TIERS,
   ladderTierForBoxes,
   whatsappLink,
+  effectiveCategories,
   type TierDef,
 } from "@/lib/tiers";
 import { formatBnDateTime, formatBnRelative, formatTaka, toBn } from "@/lib/bn";
-import { DEFAULT_PRODUCT_IMAGE, handleImgError, productImageSrc } from "@/lib/images";
-import { withBasePath } from "@/lib/base-path";
+import { categoryImageSrc, handleImgError, productImageSrc } from "@/lib/images";
 import { cn } from "@/lib/utils";
 
 /* ── animated number ─────────────────────────────────────────────────────── */
@@ -73,11 +72,6 @@ function ChangeBadge({ change, dark = false }: { change: PriceChange; dark?: boo
 }
 
 /* ── horizontal carousel row with side arrows ────────────────────────────── */
-function categoryImageSrc(id: string): string {
-  const img = CATEGORIES.find((c) => c.id === id)?.image;
-  // CATEGORIES images are raw paths; DEFAULT_PRODUCT_IMAGE is already basePath-aware
-  return img ? withBasePath(img) : DEFAULT_PRODUCT_IMAGE;
-}
 
 function scrollRow(ref: React.RefObject<HTMLDivElement | null>, dir: 1 | -1) {
   ref.current?.scrollBy({ left: dir * 220, behavior: "smooth" });
@@ -132,9 +126,10 @@ export default function PriceSection({ data }: { data: PublicData | null }) {
   const [boxes, setBoxes] = useState(2);
   const [selectedSlug, setSelectedSlug] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
-  const [menuCat, setMenuCat] = useState<string>("dates");
+  const [menuCat, setMenuCat] = useState<string>("");
 
   const products = useMemo(() => data?.products ?? [], [data]);
+  const categories = useMemo(() => effectiveCategories(data?.categories), [data]);
   const selected = useMemo(
     () => products.find((p) => p.slug === selectedSlug) ?? products[0],
     [products, selectedSlug]
@@ -155,7 +150,7 @@ export default function PriceSection({ data }: { data: PublicData | null }) {
   }
 
   function openMenu() {
-    setMenuCat(selected?.category ?? CATEGORIES[0]?.id ?? "dates");
+    setMenuCat(selected?.category ?? categories[0]?.id ?? "");
     setMenuOpen(true);
   }
 
@@ -264,9 +259,10 @@ export default function PriceSection({ data }: { data: PublicData | null }) {
                         {/* category circles */}
                         <div className="mt-3.5">
                           <CarouselRow scrollRef={catsRef}>
-                            {CATEGORIES.map((c) => {
+                            {categories.map((c: PublicCategory) => {
                               const active = c.id === menuCat;
                               const count = products.filter((p) => p.category === c.id).length;
+                              const imgSrc = categoryImageSrc(c);
                               return (
                                 <div key={c.id} className="w-[78px] shrink-0 snap-center">
                                   <button
@@ -280,9 +276,9 @@ export default function PriceSection({ data }: { data: PublicData | null }) {
                                         : "border-transparent bg-brand-deep text-cream hover:bg-brand-soft"
                                     )}
                                   >
-                                    {active ? (
+                                    {active && imgSrc ? (
                                       <img
-                                        src={categoryImageSrc(c.id)}
+                                        src={imgSrc}
                                         alt={c.labelBn}
                                         className="h-full w-full object-cover"
                                       />

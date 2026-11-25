@@ -9,10 +9,11 @@ export async function GET() {
   try {
     await ensureSeed();
 
-    const [products, meta, history] = await Promise.all([
+    const [products, meta, history, categories] = await Promise.all([
       db.product.findMany({ include: { prices: true }, orderBy: { sortOrder: "asc" } }),
       db.siteMeta.findUnique({ where: { id: "main" } }),
       db.priceHistory.findMany({ orderBy: { createdAt: "desc" }, take: 300 }),
+      db.category.findMany({ orderBy: { sortOrder: "asc" } }),
     ]);
 
     // Latest change per product+tier (history is newest-first).
@@ -46,6 +47,13 @@ export async function GET() {
             { price: pr.price, change: latestChange.get(`${p.id}:${pr.tierId}`) ?? null },
           ])
         ),
+      })),
+      categories: categories.map((c) => ({
+        id: c.id,
+        labelBn: c.labelBn,
+        hasImage: Boolean(c.imageData),
+        imageVersion: c.imageVersion,
+        imagePath: c.imagePath,
       })),
       meta: {
         noteBn: meta?.noteBn ?? "",

@@ -1,6 +1,8 @@
 // ─── AL-KAWSAR shared business definitions ───────────────────────────────────
 // Tier structure mirrors the printed Bengali price card.
 
+import type { PublicCategory } from "@/lib/api-types";
+
 export type TierDef = {
   id: string;
   labelBn: string;
@@ -62,8 +64,30 @@ export const CATEGORIES: { id: string; labelBn: string; image: string }[] = [
 
 export const CATEGORY_IDS = CATEGORIES.map((c) => c.id);
 
-export function categoryLabelBn(id: string): string {
-  return CATEGORIES.find((c) => c.id === id)?.labelBn ?? "অন্যান্য পণ্য";
+/**
+ * Categories seeded into a fresh database (only when the Category table is
+ * empty — owner-created categories and deletions are never overwritten).
+ */
+export const DEFAULT_CATEGORIES = CATEGORIES;
+
+/** Fallback shown before /api/prices responds or if the feed lacks categories. */
+export const FALLBACK_CATEGORIES: PublicCategory[] = CATEGORIES.map((c) => ({
+  id: c.id,
+  labelBn: c.labelBn,
+  hasImage: false,
+  imageVersion: 0,
+  imagePath: c.image,
+}));
+
+/** Pick the effective category list from API data, falling back when empty. */
+export function effectiveCategories(list: PublicCategory[] | undefined | null): PublicCategory[] {
+  return list && list.length > 0 ? list : FALLBACK_CATEGORIES;
+}
+
+/** Bengali label for a category id, preferring the live list over the fallback. */
+export function categoryLabelBn(id: string, list?: PublicCategory[] | null): string {
+  const hit = list?.find((c) => c.id === id) ?? FALLBACK_CATEGORIES.find((c) => c.id === id);
+  return hit?.labelBn ?? id;
 }
 
 /** Seed catalog — bump SEED_VERSION to push new/renamed items to existing databases. */

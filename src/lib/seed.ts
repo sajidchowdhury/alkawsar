@@ -5,13 +5,32 @@
 // products the owner deleted are not resurrected once the version is applied.
 
 import { db } from "@/lib/db";
-import { PRODUCTS_DEF, DEFAULT_PRICES, TIERS, SEED_VERSION } from "@/lib/tiers";
+import { PRODUCTS_DEF, DEFAULT_PRICES, TIERS, SEED_VERSION, DEFAULT_CATEGORIES } from "@/lib/tiers";
 
 let seeded = false;
 
 export async function ensureSeed(): Promise<void> {
   if (seeded) return;
   try {
+    // Fresh database only: seed the two default categories. Owner-created
+    // categories and intentional deletions are never resurrected afterwards.
+    const catCount = await db.category.count();
+    if (catCount === 0) {
+      for (let i = 0; i < DEFAULT_CATEGORIES.length; i += 1) {
+        const c = DEFAULT_CATEGORIES[i];
+        await db.category.upsert({
+          where: { id: c.id },
+          update: { labelBn: c.labelBn, imagePath: c.image },
+          create: {
+            id: c.id,
+            labelBn: c.labelBn,
+            imagePath: c.image,
+            sortOrder: i + 1,
+          },
+        });
+      }
+    }
+
     const meta = await db.siteMeta.findUnique({ where: { id: "main" } });
     const currentVersion = meta?.seedVersion ?? 0;
 

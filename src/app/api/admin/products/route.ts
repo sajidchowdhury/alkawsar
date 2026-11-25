@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { isValidAdminCookie, ADMIN_COOKIE_NAME } from "@/lib/auth";
-import { CATEGORY_IDS } from "@/lib/tiers";
+import { ensureSeed } from "@/lib/seed";
 
 type CreateBody = {
   nameBn?: unknown;
@@ -41,9 +41,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "বাংলা নাম দিন" }, { status: 400 });
   }
 
-  const category = cleanStr(body.category, 20);
-  if (!CATEGORY_IDS.includes(category)) {
-    return NextResponse.json({ ok: false, error: "ক্যাটাগরি ভুল" }, { status: 400 });
+  const category = cleanStr(body.category, 40);
+  await ensureSeed();
+  const categoryExists = await db.category.findUnique({ where: { id: category }, select: { id: true } });
+  if (!categoryExists) {
+    return NextResponse.json({ ok: false, error: "ক্যাটাগরি ভুল বা নেই" }, { status: 400 });
   }
 
   try {

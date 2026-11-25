@@ -7,6 +7,16 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Category {
+  id           String   @id // slug-style id, e.g. "dates" — referenced by Product.category
+  labelBn      String
+  imageData    String? // owner-uploaded circle image (data URL)
+  imageVersion Int      @default(0)
+  imagePath    String? // static seeded artwork path (raw — client applies basePath)
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+}
+
 model Product {
   id           String         @id @default(cuid())
   slug         String         @unique

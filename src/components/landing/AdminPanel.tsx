@@ -2,16 +2,26 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { CheckCircle2, ImagePlus, Loader2, LogOut, Plus, Trash2, Upload, X } from "lucide-react";
+import {
+  CheckCircle2,
+  ImagePlus,
+  Loader2,
+  LogOut,
+  Plus,
+  Shapes,
+  Trash2,
+  Upload,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { CATEGORIES, TIERS } from "@/lib/tiers";
+import { TIERS, categoryLabelBn, effectiveCategories } from "@/lib/tiers";
 import { withBasePath } from "@/lib/base-path";
-import { fileToCompressedDataUrl, handleImgError, productImageSrc } from "@/lib/images";
+import { categoryImageSrc, fileToCompressedDataUrl, handleImgError, productImageSrc } from "@/lib/images";
 import { toBn } from "@/lib/bn";
 import { cn } from "@/lib/utils";
 import type { PublicData } from "@/lib/api-types";
@@ -62,10 +72,18 @@ export default function AdminPanel({
   const [deletingSlug, setDeletingSlug] = useState<string | null>(null);
   const [addNameBn, setAddNameBn] = useState("");
   const [addNameEn, setAddNameEn] = useState("");
-  const [addCategory, setAddCategory] = useState("dates");
+  const [addCategory, setAddCategory] = useState("");
   const [addGradeBn, setAddGradeBn] = useState("");
   const [addDescBn, setAddDescBn] = useState("");
   const [addPackSize, setAddPackSize] = useState("");
+
+  // Category management
+  const [showAddCat, setShowAddCat] = useState(false);
+  const [addingCat, setAddingCat] = useState(false);
+  const [deletingCatId, setDeletingCatId] = useState<string | null>(null);
+  const [uploadingCatId, setUploadingCatId] = useState<string | null>(null);
+  const [addCatLabelBn, setAddCatLabelBn] = useState("");
+  const [addCatNameEn, setAddCatNameEn] = useState("");
 
   // Latest data via ref — lets us sync the form on open without clobbering edits.
   const dataRef = useRef<PublicData | null>(null);
@@ -103,6 +121,19 @@ export default function AdminPanel({
   }, [open]);
 
   const productsInGrid = useMemo(() => data?.products ?? [], [data]);
+  const categories = useMemo(() => effectiveCategories(data?.categories), [data]);
+
+  // Product counts per category (shown in the category manager rows).
+  const catProductCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const p of productsInGrid) counts[p.category] = (counts[p.category] ?? 0) + 1;
+    return counts;
+  }, [productsInGrid]);
+
+  // Selected category for the add-product form; falls back to the first one.
+  const effectiveAddCat = categories.some((c) => c.id === addCategory)
+    ? addCategory
+    : categories[0]?.id ?? "";
 
   async function handleLogin(e?: React.FormEvent) {
     e?.preventDefault();
@@ -218,7 +249,7 @@ export default function AdminPanel({
   function resetAddForm() {
     setAddNameBn("");
     setAddNameEn("");
-    setAddCategory("dates");
+    setAddCategory("");
     setAddGradeBn("");
     setAddDescBn("");
     setAddPackSize("");
@@ -236,7 +267,7 @@ export default function AdminPanel({
         body: JSON.stringify({
           nameBn: addNameBn,
           nameEn: addNameEn,
-          category: addCategory,
+          category: effectiveAddCat,
           gradeBn: addGradeBn,
           descBn: addDescBn,
           packSizeBn: addPackSize,
@@ -275,6 +306,106 @@ export default function AdminPanel({
       toast.error("সংযোগ সমস্যা — আবার চেষ্টা করুন");
     } finally {
       setDeletingSlug(null);
+    }
+  }
+
+  // ── Category management ──────────────────────────────────────────────────
+
+  function resetAddCatForm() {
+    setAddCatLabelBn("");
+    setAddCatNameEn("");
+    setShowAddCat(false);
+  }
+
+  async function handleAddCategory(e?: React.FormEvent) {
+    e?.preventDefault();
+    if (!addCatLabelBn.trim()) return;
+    setAddingCat(true);
+    try {
+      const res = await fetch(withBasePath("/api/admin/categories"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          labelBn: addCatLabelBn,
+          nameEn: addCatNameEn,
+        }),
+      });
+      const json = await res.json();
+      if (res.ok && json.ok) {
+        toast.success(`"${addCatLabelBn}" ক্যাটাগরি যোগ হয়েছে`);
+        resetAddCatForm();
+        onSaved();
+      } else {
+        toast.error(json.error || "যোগ করা যায়নি");
+      }
+    } catch {
+      toast.error("সংযোগ সমস্যা — আবার চেষ্টা করুন");
+    } finally {
+      setAddingCat(false);
+    }
+  }
+
+  async function handleDeleteCategory(id: string, labelBn: string) {
+    if (!window.confirm(`"${labelBn}" ক্যাটাগরিটি মুছে ফেলবেন?`)) return;
+    setDeletingCatId(id);
+    try {
+      const res = await fetch(withBasePath(`/api/admin/categories?id=${encodeURIComponent(id)}`), {
+        method: "DELETE",
+      });
+      const json = await res.json();
+      if (res.ok && json.ok) {
+        toast.success(`"${labelBn}" ক্যাটাগরি মুছে ফেলা হয়েছে`);
+        onSaved();
+      } else {
+        toast.error(json.error || "মুছে ফেলা যায়নি");
+      }
+    } catch {
+      toast.error("সংযোগ সমস্যা — আবার চেষ্টা করুন");
+    } finally {
+      setDeletingCatId(null);
+    }
+  }
+
+  async function handleUploadCategoryImage(id: string, file: File) {
+    setUploadingCatId(id);
+    try {
+      const dataUrl = await fileToCompressedDataUrl(file);
+      const res = await fetch(withBasePath("/api/admin/category-image"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, dataUrl }),
+      });
+      const json = await res.json();
+      if (res.ok && json.ok) {
+        toast.success("ক্যাটাগরির ছবি আপলোড হয়েছে");
+        onSaved();
+      } else {
+        toast.error(json.error || "আপলোড হয়নি");
+      }
+    } catch {
+      toast.error("ছবি প্রসেস করা যায়নি — আবার চেষ্টা করুন");
+    } finally {
+      setUploadingCatId(null);
+    }
+  }
+
+  async function handleRemoveCategoryImage(id: string) {
+    setUploadingCatId(id);
+    try {
+      const res = await fetch(withBasePath(`/api/admin/category-image?id=${encodeURIComponent(id)}`), {
+        method: "DELETE",
+      });
+      const json = await res.json();
+      if (res.ok && json.ok) {
+        toast.success("ক্যাটাগরির ছবি মুছে ফেলা হয়েছে");
+        onSaved();
+      } else {
+        toast.error(json.error || "মুছে ফেলা যায়নি");
+      }
+    } catch {
+      toast.error("সংযোগ সমস্যা — আবার চেষ্টা করুন");
+    } finally {
+      setUploadingCatId(null);
     }
   }
 
@@ -356,7 +487,7 @@ export default function AdminPanel({
                         <h3 className="font-bengali text-sm font-bold text-brand">
                           {p.nameBn}
                           <span className="ml-2 rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-bold text-brand/80">
-                            {p.category === "dates" ? "খেজুর" : "অন্যান্য"}
+                            {categoryLabelBn(p.category, categories)}
                           </span>
                         </h3>
                         <p className="text-[10px] text-stone-warm">{p.nameEn}</p>
@@ -551,15 +682,16 @@ export default function AdminPanel({
                       </div>
                       <div className="space-y-1.5">
                         <Label className="text-xs">ক্যাটাগরি</Label>
-                        <div className="grid grid-cols-2 gap-2">
-                          {CATEGORIES.map((c) => (
+                        <div className="flex flex-wrap gap-2">
+                          {categories.map((c) => (
                             <button
                               key={c.id}
                               type="button"
                               onClick={() => setAddCategory(c.id)}
+                              aria-pressed={effectiveAddCat === c.id}
                               className={cn(
-                                "min-h-10 rounded-xl border font-bengali text-xs font-bold transition active:scale-[0.98]",
-                                addCategory === c.id
+                                "min-h-10 rounded-xl border px-3 font-bengali text-xs font-bold transition active:scale-[0.98]",
+                                effectiveAddCat === c.id
                                   ? "border-brand bg-brand text-cream"
                                   : "border-brand/30 text-brand hover:bg-brand/10"
                               )}
@@ -613,6 +745,174 @@ export default function AdminPanel({
                       </div>
                     </form>
                   )}
+                </div>
+
+                {/* ── category management ─────────────────────────────────── */}
+                <div className="rounded-2xl border border-gold/40 bg-white/60 p-4">
+                  <div className="flex items-center gap-1.5 pb-1">
+                    <Shapes size={15} className="text-brand" />
+                    <h3 className="font-bengali text-sm font-bold text-brand">ক্যাটাগরি ম্যানেজমেন্ট</h3>
+                  </div>
+                  <p className="pb-3 text-[10px] leading-relaxed text-stone-warm">
+                    নতুন ক্যাটাগরি বানালে সাইটের MENU-তে সাথে সাথে দেখা যাবে — পণ্য যোগ করে দাম বসালেই তালিকায় চলে আসবে।
+                  </p>
+
+                  {/* category rows */}
+                  <div className="space-y-2">
+                    {categories.map((c) => {
+                      const count = catProductCounts[c.id] ?? 0;
+                      const imgSrc = categoryImageSrc(c);
+                      return (
+                        <div
+                          key={c.id}
+                          className="flex items-center gap-3 rounded-xl border border-gold/25 bg-cream/70 p-2.5"
+                        >
+                          <label
+                            htmlFor={`cat-img-${c.id}`}
+                            className="relative block h-11 w-11 shrink-0 cursor-pointer overflow-hidden rounded-full bg-brand-deep ring-1 ring-gold/40 transition hover:ring-gold"
+                            title="ক্যাটাগরির ছবি আপলোড করুন"
+                          >
+                            {imgSrc ? (
+                              <img
+                                src={imgSrc}
+                                alt={`${c.labelBn} ছবি`}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <span className="flex h-full w-full items-center justify-center font-bengali text-[10px] font-bold leading-tight text-cream">
+                                {c.labelBn.slice(0, 4)}
+                              </span>
+                            )}
+                            {uploadingCatId === c.id && (
+                              <span className="absolute inset-0 flex items-center justify-center bg-brand-deep/60">
+                                <Loader2 size={14} className="animate-spin text-cream" />
+                              </span>
+                            )}
+                          </label>
+                          <input
+                            id={`cat-img-${c.id}`}
+                            type="file"
+                            accept="image/*"
+                            className="sr-only"
+                            onChange={(e) => {
+                              const f = e.target.files?.[0];
+                              if (f) handleUploadCategoryImage(c.id, f);
+                              e.target.value = "";
+                            }}
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate font-bengali text-sm font-bold text-ink">
+                              {c.labelBn}
+                            </p>
+                            <p className="text-[10px] text-stone-warm">
+                              {toBn(count)} টি পণ্য
+                            </p>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-1.5">
+                            <label
+                              htmlFor={`cat-img-${c.id}`}
+                              className={cn(
+                                "inline-flex min-h-8 cursor-pointer items-center gap-1 rounded-lg border border-brand/30 px-2.5 text-[11px] font-bold text-brand transition hover:bg-brand/10 active:scale-95",
+                                uploadingCatId !== null && "pointer-events-none opacity-50"
+                              )}
+                            >
+                              <ImagePlus size={12} />
+                              {c.hasImage ? "বদলান" : "ছবি"}
+                            </label>
+                            {c.hasImage && (
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveCategoryImage(c.id)}
+                                disabled={uploadingCatId !== null}
+                                className="inline-flex min-h-8 items-center gap-1 rounded-lg border border-brick/30 px-2.5 text-[11px] font-bold text-brick transition hover:bg-brick/10 active:scale-95 disabled:opacity-50"
+                              >
+                                <Trash2 size={11} />
+                                মুছুন
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteCategory(c.id, c.labelBn)}
+                              disabled={deletingCatId !== null}
+                              className="flex h-8 w-8 items-center justify-center rounded-full text-brick/70 transition hover:bg-brick/10 hover:text-brick disabled:opacity-40"
+                              aria-label={`${c.labelBn} ক্যাটাগরি মুছে ফেলুন`}
+                              title="ক্যাটাগরি মুছে ফেলুন (পণ্য থাকলে আগে সরাতে হবে)"
+                            >
+                              {deletingCatId === c.id ? (
+                                <Loader2 size={14} className="animate-spin" />
+                              ) : (
+                                <Trash2 size={14} />
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* add category */}
+                  <div className="pt-3">
+                    {!showAddCat ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowAddCat(true)}
+                        className="flex min-h-11 w-full items-center justify-center gap-1.5 rounded-xl border border-gold/50 bg-gold/10 font-bengali text-sm font-bold text-brand-deep transition hover:bg-gold/20 active:scale-[0.99]"
+                      >
+                        <Plus size={16} />
+                        নতুন ক্যাটাগরি বানান
+                      </button>
+                    ) : (
+                      <form onSubmit={handleAddCategory} className="space-y-3 rounded-xl border border-gold/40 bg-cream/80 p-3">
+                        <p className="font-bengali text-xs font-bold text-brand">নতুন ক্যাটাগরি</p>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="add-cat-bn" className="text-xs">
+                            বাংলা নাম <span className="text-brick">*</span>
+                          </Label>
+                          <Input
+                            id="add-cat-bn"
+                            value={addCatLabelBn}
+                            onChange={(e) => setAddCatLabelBn(e.target.value.slice(0, 30))}
+                            placeholder="যেমন: বাদাম ও ফল"
+                            className="h-11 font-bengali"
+                            autoFocus
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="add-cat-en" className="text-xs">
+                            English নাম (ঐচ্ছিক — আইডি তৈরি হবে এ থেকে)
+                          </Label>
+                          <Input
+                            id="add-cat-en"
+                            value={addCatNameEn}
+                            onChange={(e) => setAddCatNameEn(e.target.value.slice(0, 40))}
+                            placeholder="Nuts & Fruits"
+                            className="h-11"
+                          />
+                        </div>
+                        <p className="text-[10px] leading-relaxed text-stone-warm">
+                          ছবি না দিলে MENU-তে নাম দেখাবে — পরে ছবি আপলোড করতে পারবেন।
+                        </p>
+                        <div className="flex gap-2">
+                          <Button
+                            type="submit"
+                            disabled={addingCat || !addCatLabelBn.trim()}
+                            className="h-10 flex-1 bg-brand text-cream hover:bg-brand-soft font-bold"
+                          >
+                            {addingCat ? <Loader2 className="animate-spin" size={16} /> : "বানান"}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={resetAddCatForm}
+                            disabled={addingCat}
+                            className="h-10 font-bengali"
+                          >
+                            বাতিল
+                          </Button>
+                        </div>
+                      </form>
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-1.5">
