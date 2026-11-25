@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { isValidAdminCookie, ADMIN_COOKIE_NAME } from "@/lib/auth";
-import { TIERS } from "@/lib/tiers";
+import { TIER_IDS } from "@/lib/tiers";
+
+const VALID_TIERS = new Set(TIER_IDS);
 
 type UpdateBody = {
   prices?: Record<string, Record<string, unknown>>;
@@ -28,8 +30,11 @@ export async function POST(req: NextRequest) {
     for (const p of products) {
       const incoming = body.prices?.[p.slug];
       if (incoming && typeof incoming === "object") {
+        const rows = incoming as Record<string, unknown>;
+
+        // 1) Update existing rows (record history on change).
         for (const pr of p.prices) {
-          const raw = (incoming as Record<string, unknown>)[pr.tierId];
+          const raw = rows[pr.tierId];
           if (raw === undefined || raw === null || raw === "") continue;
           const num = Number(raw);
           if (!Number.isFinite(num) || num < 0 || num > 100000) continue;
@@ -41,6 +46,23 @@ export async function POST(req: NextRequest) {
               data: { productId: p.id, tierId: pr.tierId, oldPrice: pr.price, newPrice: price },
             }),
           ]);
+          changed += 1;
+        }
+
+        // 2) A newly added product has NO price rows yet — create rows for any
+        //    tier the owner just priced. (Previously this route only updated
+        //    existing rows, so prices entered right after adding a product were
+        //    silently dropped and the site kept showing "দাম শীঘ্রই".)
+        //    No history entry here: a first price is a publication, not a
+        //    change. Empty/0 stays unset (no row), same as before first save.
+        const existingTiers = new Set(p.prices.map((pr) => pr.tierId));
+        for (const [tierId, raw] of Object.entries(rows)) {
+          if (existingTiers.has(tierId) || !VALID_TIERS.has(tierId)) continue;
+          const num = Number(raw);
+          if (!Number.isFinite(num) || num <= 0 || num > 100000) continue;
+          await db.productPrice.create({
+            data: { productId: p.id, tierId, price: Math.round(num) },
+          });
           changed += 1;
         }
       }
