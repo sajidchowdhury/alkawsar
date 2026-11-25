@@ -75,7 +75,8 @@ function ChangeBadge({ change, dark = false }: { change: PriceChange; dark?: boo
 /* ── horizontal carousel row with side arrows ────────────────────────────── */
 function categoryImageSrc(id: string): string {
   const img = CATEGORIES.find((c) => c.id === id)?.image;
-  return withBasePath(img ?? DEFAULT_PRODUCT_IMAGE);
+  // CATEGORIES images are raw paths; DEFAULT_PRODUCT_IMAGE is already basePath-aware
+  return img ? withBasePath(img) : DEFAULT_PRODUCT_IMAGE;
 }
 
 function scrollRow(ref: React.RefObject<HTMLDivElement | null>, dir: 1 | -1) {

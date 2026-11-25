@@ -1,7 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import { motion } from "framer-motion";
+import { withBasePath } from "@/lib/base-path";
 
 const VALUES = ["খাঁটিপনা", "সৎ কথা", "সম্পর্ক আগে", "নিয়মিত যত্ন", "বরকত > আয়তন"];
 
@@ -70,12 +70,12 @@ export default function StorySection() {
             className="relative"
           >
             <div className="relative aspect-[4/3.4] overflow-hidden rounded-3xl border border-gold/30 shadow-2xl shadow-black/40">
-              <Image
-                src="/images/story-palm.png"
+              {/* direct, basePath-aware asset URL (NEXT_PUBLIC_BASE_PATH) */}
+              <img
+                src={withBasePath("/images/story-palm.png")}
                 alt="সোনালি আলোয় খেজুর গাছ ও শান্ত নদী — আল-কাওসারের প্রতীক"
-                fill
-                sizes="(max-width: 768px) 100vw, 340px"
-                className="object-cover"
+                loading="lazy"
+                className="absolute inset-0 h-full w-full object-cover"
               />
               <div
                 className="absolute inset-0 bg-gradient-to-t from-brand-deep/55 via-transparent to-transparent"

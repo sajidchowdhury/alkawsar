@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowDown, BadgeCheck, ChevronLeft, ChevronRight, HandCoins, MessageCircle, Truck } from "lucide-react";
 import LogoMark from "./LogoMark";
 import { whatsappLink, DEFAULT_ORDER_MESSAGE } from "@/lib/tiers";
+import { withBasePath } from "@/lib/base-path";
 
 const HERO_SLIDES = [
   {
@@ -93,14 +93,14 @@ function HeroSlider() {
             className="absolute inset-0"
             aria-hidden={i !== index}
           >
-            <Image
-              src={s.src}
+            {/* direct, basePath-aware asset URL (NEXT_PUBLIC_BASE_PATH): serves from
+                "<base>/images/..." under sub-path deployments and "/images/..." at root */}
+            <img
+              src={withBasePath(s.src)}
               alt={s.alt}
-              fill
-              priority={i === 0}
               loading="eager"
-              sizes="(max-width: 768px) 100vw, 700px"
-              className="object-cover"
+              fetchPriority={i === 0 ? "high" : "auto"}
+              className="absolute inset-0 h-full w-full object-cover"
             />
           </motion.div>
         ))}
